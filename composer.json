@@ -1,0 +1,13 @@
+{
+    "name": "bfp/fuel-system",
+    "description": "BFP Fuel Management System",
+    "type": "project",
+    "require": {
+        "dompdf/dompdf": "^2.0"
+    },
+    "config": {
+        "allow-plugins": {
+            "php-http/discovery": true
+        }
+    }
+}

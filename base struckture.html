@@ -1,0 +1,177 @@
+<?php
+ session_start();
+ // Define these for testing if not already set by your auth logic
+ $current_role = $_SESSION['role'] ?? 'admin'; 
+ $isTripsActive = false; // Set this based on current page URL
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BFP - Fuel Monitoring System</title>
+    <style>
+        :root { --bfp-red: #B22222; --sidebar-bg: #1e1e2d; --active-gradient: linear-gradient(90deg, rgba(80, 80, 255, 0.15) 0%, rgba(80, 80, 255, 0) 100%); --sidebar-width: 280px; --sidebar-collapsed-width: 80px; --transition-speed: 0.4s; }
+        body { margin: 0; font-family: 'Segoe UI', Roboto, sans-serif; background-color: #0f1014; height: 100vh; display: flex; color: white; overflow: hidden; }
+        .wrapper { display: flex; width: 100%; height: 100%; }
+        .sidebar { width: var(--sidebar-width); background: var(--sidebar-bg); display: flex; flex-direction: column; transition: width var(--transition-speed) cubic-bezier(0.25, 1, 0.5, 1); border-right: 1px solid rgba(255,255,255,0.05); overflow: hidden; white-space: nowrap; position: relative; }
+        .sidebar.collapsed { width: var(--sidebar-collapsed-width); }
+        .sidebar-header { padding: 15px 20px; display: flex; align-items: center; height: 70px; box-sizing: border-box; transition: padding 0.3s; }
+        .sidebar.collapsed .sidebar-header { padding: 15px 0; justify-content: center; }
+        .brand-logo { width: 40px; height: 40px; flex-shrink: 0; }
+        .brand-text { font-size: 0.85rem; font-weight: bold; color: #a2a2c2; margin-left: 15px; transition: opacity 0.3s, transform 0.3s; }
+        .toggle-btn { background: rgba(255,255,255,0.05); border: none; color: #565674; cursor: pointer; width: 30px; height: 30px; border-radius: 5px; display: flex; align-items: center; justify-content: center; transition: all 0.3s; margin-left: auto; }
+        .sidebar.collapsed .brand-text { opacity: 0; width: 0; margin: 0; pointer-events: none; }
+        .sidebar.collapsed .toggle-btn { margin-left: 0; transform: rotate(180deg); }
+        .user-profile { margin: 10px 15px 20px; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 12px; display: flex; align-items: center; transition: all 0.3s; min-height: 60px; box-sizing: border-box; }
+        .sidebar.collapsed .user-profile { margin: 10px 10px; padding: 12px 0; justify-content: center; }
+        .avatar { width: 38px; height: 38px; background: #5d5dff; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: bold; font-size: 0.9rem; }
+        .profile-info { margin-left: 12px; transition: opacity 0.2s; }
+        .sidebar.collapsed .profile-info { opacity: 0; width: 0; margin: 0; display: none; }
+        .sidebar ul { list-style: none; padding: 0 15px; margin: 0; flex-grow: 1; }
+        .sidebar.collapsed ul { padding: 0 10px; }
+        .menu-item { margin-bottom: 5px; }
+        .menu-label { display: flex; align-items: center; padding: 12px 15px; cursor: pointer; border-radius: 12px; transition: all 0.3s; color: #9899ac; text-decoration: none; position: relative; }
+        .sidebar.collapsed .menu-label { justify-content: center; padding: 12px 0; }
+        .active > .menu-label { background: var(--active-gradient); border-left: 3px solid #5d5dff; color: white; }
+        .nav-icon { font-size: 1.2rem; width: 25px; text-align: center; flex-shrink: 0; }
+        .nav-text { margin-left: 15px; transition: opacity 0.3s; }
+        .sidebar.collapsed .nav-text { display: none; }
+        .arrow { border: solid #565674; border-width: 0 2px 2px 0; display: inline-block; padding: 3px; transform: rotate(45deg); transition: 0.3s; margin-left: auto; }
+        .active .arrow { transform: rotate(-135deg); border-color: white; }
+        .sidebar.collapsed .arrow { display: none; }
+        .submenu { max-height: 0; overflow: hidden; background: rgba(0,0,0,0.15); border-radius: 8px; margin-left: 35px; transition: max-height 0.3s ease-out; }
+        .active .submenu { max-height: 600px; margin-top: 5px; padding: 5px 0; }
+        .sidebar.collapsed .submenu { display: none; }
+        .submenu-header { background: rgba(255,255,255,0.03); font-size: 0.65rem; font-weight: bold; color: #565674; padding: 8px 20px; letter-spacing: 1px; text-transform: uppercase; }
+        .submenu li a { padding: 10px 20px; display: block; color: #7e8299; text-decoration: none; font-size: 0.85rem; transition: all 0.3s ease; border-radius: 8px; margin: 0 8px; }
+        .submenu li a:hover { color: #5d5dff; background: rgba(93, 93, 255, 0.1); padding-left: 25px; }
+        .sidebar-footer { margin-top: auto; padding: 20px 15px; border-top: 1px solid rgba(255,255,255,0.05); }
+        .sidebar.collapsed .sidebar-footer { padding: 20px 10px; }
+        .logout-btn { display: flex; align-items: center; padding: 12px; background: transparent; border: 1px solid rgba(255, 71, 87, 0.2); border-radius: 12px; color: #ff4757; cursor: pointer; transition: all 0.3s; text-decoration: none; width: 100%; box-sizing: border-box; }
+        .sidebar.collapsed .logout-btn { justify-content: center; border: none; }
+        .logout-btn:hover { background: rgba(255, 71, 87, 0.1); border-color: #ff4757; }
+        .content-area { flex: 1; display: flex; flex-direction: column; background: #151521; }
+        header { padding: 15px 30px; background: #1e1e2d; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    </style>
+</head>
+<body>
+
+<div class="wrapper">
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <img src="Album/Official Logo.png" class="brand-logo" alt="BFP">
+            <div class="brand-text">BFP FUEL<br>SYSTEM</div>
+            <button class="toggle-btn" id="toggleSidebar">◀</button>
+        </div>
+
+        <div class="user-profile">
+            <div class="avatar">AD</div>
+            <div class="profile-info">
+                <span style="display:block; font-size:0.9rem; font-weight:bold;">Admin</span>
+                <small style="color:#565674;">Fire Officer III</small>
+            </div>
+        </div>
+        
+        <ul>
+            <li class="menu-item single-link">
+                <a href="#" class="menu-label"><span class="nav-icon">🏠</span><span class="nav-text">Dashboard</span></a>
+            </li>
+
+            <li class="menu-item dropdown <?php echo $isTripsActive ? 'active' : ''; ?>">
+                <div class="menu-label">
+                    <span class="nav-icon">🚗</span>
+                    <span class="nav-text">Trip Tickets</span>
+                    <i class="arrow"></i>
+                </div>
+                <ul class="submenu">
+                    <li class="submenu-header">Action</li>
+                    <?php if ($current_role === 'admin'): ?>
+                        <li><a href="CreateForm.php">➕ Issue New Ticket</a></li>
+                    <?php endif; ?>
+                    <li><a href="active_trips.php">🚒 Active Trips</a></li>
+                    <li><a href="Maps.php">📍 Map View</a></li>
+
+                    <li class="submenu-header" style="margin-top:10px;">Records</li>
+                    <li><a href="Trip_ticket_dashboard.php">📑 View Logs</a></li>
+                    <li><a href="pending_reports.php">⏳ Pending Submissions</a></li>
+
+                    <?php if ($current_role === 'admin'): ?>
+                        <li class="submenu-header" style="margin-top:10px;">Analytics</li>
+                        <li><a href="fuel_summary.php">⛽ Fuel Consumption</a></li>
+                        <li><a href="vehicle_status.php">📋 Vehicle Registry</a></li>
+                        <li><a href="User_Logs.php">📊 Activity Logs</a></li>
+                    <?php endif; ?>
+                </ul>
+            </li>
+
+           <li class="menu-item dropdown <?php echo $isFuelActive ? 'active' : ''; ?>">
+            <div class="menu-label">
+                <span class="menu-icon">⛽</span>
+                <span class="menu-label-text">Fuel Logs</span>
+                <i class="arrow"></i>
+            </div>
+            <ul class="submenu">
+                <li><a href="fuel_monthly.php">Monthly Summary</a></li>
+                <li><a href="fuel_stocks.php">Gasoline Stocks</a></li>
+            </ul>
+        </li>
+
+        <li class="menu-item <?php echo $isVehicles ? 'active' : ''; ?>">
+            <a href="vehicle.php" class="menu-label">
+                <span class="menu-icon">🚙</span>
+                <span class="menu-label-text">Vehicles</span>
+            </a>
+        </li>
+
+        <li class="menu-item <?php echo $isSettings ? 'active' : ''; ?>">
+            <a href="user_logs.php" class="menu-label">
+                <span class="menu-icon">📝</span>
+                <span class="menu-label-text">User logs</span>
+            </a>
+        </li>
+        </ul>
+
+        <div class="sidebar-footer">
+            <a href="login.php" class="logout-btn"><span class="nav-icon">🚪</span><span class="nav-text">Logout</span></a>
+        </div>
+    </aside>
+
+    <div class="content-area">
+        <header><h3 style="margin:0;">Dashboard Overview</h3></header>
+        <main style="padding: 30px;">
+            <div style="border: 2px dashed rgba(255,255,255,0.05); height: 200px; border-radius: 20px; display:flex; align-items:center; justify-content:center; color:#565674;">
+                Main Content Area (Ready for PHP Content)
+            </div>
+        </main>
+    </div>
+</div>
+
+<script>
+    const sidebar = document.getElementById('sidebar');
+    const toggleBtn = document.getElementById('toggleSidebar');
+    
+    toggleBtn.addEventListener('click', () => { sidebar.classList.toggle('collapsed'); });
+
+    document.querySelectorAll('.dropdown, .single-link').forEach(item => {
+        item.addEventListener('click', function(e) {
+            if (e.target.closest('.submenu')) return;
+            const wasActive = this.classList.contains('active');
+            
+            // Remove active from others
+            document.querySelectorAll('.dropdown, .single-link').forEach(other => {
+                if (other !== this) other.classList.remove('active');
+            });
+            
+            // Toggle clicked item
+            this.classList.toggle('active');
+
+            // Force expand if user clicks a menu while collapsed
+            if (sidebar.classList.contains('collapsed')) {
+                sidebar.classList.remove('collapsed');
+            }
+        });
+    });
+</script>
+</body>
+</html>
